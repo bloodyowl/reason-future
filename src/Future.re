@@ -148,6 +148,5 @@ let all4 = (a, b, c, d) => {
 };
 
 let all5 = (a, b, c, d, e) => {
-  all2(all4(a, b, c, d), e)
-  ->map((((a, b, c, d), e)) => (a, b, c, d, e)) /* testAll->get(Js.log2("All"))*/;
+  all2(all4(a, b, c, d), e)->map((((a, b, c, d), e)) => (a, b, c, d, e));
 };
