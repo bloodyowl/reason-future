@@ -49,27 +49,97 @@ describe("Future", ({test, testAsync}) => {
     ();
   });
 
-  testAsync("Future.cancel deep", ({expect, callback}) => {
-    let counter = ref(0);
+  testAsync("Future.cancel propagate cancel (default)", ({expect, callback}) => {
+    let future2Counter = ref(0);
+    let future3Counter = ref(0);
     let future =
       Future.make(resolve => {
         let timeoutId = Js.Global.setTimeout(() => resolve(1), 10);
         Some(() => Js.Global.clearTimeout(timeoutId));
-      })
+      });
+    let future2 =
+      future
       ->Future.map(x => {
-          incr(counter);
+          incr(future2Counter);
           x + 1;
         })
       ->Future.flatMap(x => {
-          incr(counter);
+          incr(future2Counter);
           Future.value(x + 1);
         });
-    future->Future.get(_ => {incr(counter)});
-    Future.cancel(future);
+    let future3 =
+      future
+      ->Future.map(x => {
+          incr(future3Counter);
+          x + 1;
+        })
+      ->Future.flatMap(x => {
+          incr(future3Counter);
+          Future.value(x + 1);
+        });
+    future2->Future.get(_ => {incr(future2Counter)});
+    future3->Future.get(_ => {incr(future3Counter)});
+    Future.cancel(future2);
     let _ =
       Js.Global.setTimeout(
         () => {
-          expect.int(counter.contents).toBe(0);
+          expect.int(future2Counter.contents).toBe(0);
+          expect.int(future3Counter.contents).toBe(0);
+          callback();
+        },
+        20,
+      );
+    ();
+  });
+
+  testAsync("Future.cancel propagate cancel", ({expect, callback}) => {
+    let future2Counter = ref(0);
+    let future3Counter = ref(0);
+    let future =
+      Future.make(resolve => {
+        let timeoutId = Js.Global.setTimeout(() => resolve(1), 10);
+        Some(() => Js.Global.clearTimeout(timeoutId));
+      });
+    let future2 =
+      future
+      ->Future.map(
+          ~propagateCancel=false,
+          x => {
+            incr(future2Counter);
+            x + 1;
+          },
+        )
+      ->Future.flatMap(
+          ~propagateCancel=true,
+          x => {
+            incr(future2Counter);
+            Future.value(x + 1);
+          },
+        );
+    let future3 =
+      future
+      ->Future.map(
+          ~propagateCancel=false,
+          x => {
+            incr(future3Counter);
+            x + 1;
+          },
+        )
+      ->Future.flatMap(
+          ~propagateCancel=false,
+          x => {
+            incr(future3Counter);
+            Future.value(x + 1);
+          },
+        );
+    future2->Future.get(_ => {incr(future2Counter)});
+    future3->Future.get(_ => {incr(future3Counter)});
+    Future.cancel(future2);
+    let _ =
+      Js.Global.setTimeout(
+        () => {
+          expect.int(future2Counter.contents).toBe(1);
+          expect.int(future3Counter.contents).toBe(3);
           callback();
         },
         20,

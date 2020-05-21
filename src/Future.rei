@@ -25,9 +25,9 @@ let get: (t('a), 'a => unit) => unit;
 
 let cancel: t('a) => unit;
 
-let map: (t('a), 'a => 'b) => t('b);
+let map: (t('a), ~propagateCancel: bool=?, 'a => 'b) => t('b);
 
-let flatMap: (t('a), 'a => t('b)) => t('b);
+let flatMap: (t('a), ~propagateCancel: bool=?, 'a => t('b)) => t('b);
 
 let all: array(t('a)) => t(array('a));
 

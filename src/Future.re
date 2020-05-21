@@ -117,14 +117,18 @@ let cancel = (Future(getFunc)) => {
   cancel();
 };
 
-let map = (Future(getFunc), mapper) => {
+let map = (Future(getFunc), ~propagateCancel=true, mapper) => {
   make(resolve => {
     let Cancel(cancel) = getFunc(getVal => {resolve(mapper(getVal))});
-    Some(() => cancel());
+    if (propagateCancel) {
+      Some(() => cancel());
+    } else {
+      None;
+    };
   });
 };
 
-let flatMap = (Future(getFunc), mapper) => {
+let flatMap = (Future(getFunc), ~propagateCancel=true, mapper) => {
   make(resolve => {
     let Cancel(cancel) =
       getFunc(val1 => {
@@ -132,7 +136,11 @@ let flatMap = (Future(getFunc), mapper) => {
         let _ = getFunc2(val2 => {resolve(val2)});
         ();
       });
-    Some(() => {cancel()});
+    if (propagateCancel) {
+      Some(() => cancel());
+    } else {
+      None;
+    };
   });
 };
 
