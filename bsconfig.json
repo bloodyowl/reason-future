@@ -1,0 +1,26 @@
+{
+  "name": "reason-future",
+  "version": "0.1.0",
+  "sources": [
+    {
+      "dir": "src",
+      "subdirs": true
+    },
+    {
+      "dir": "test",
+      "subdirs": true,
+      "type": "dev"
+    }
+  ],
+  "package-specs": {
+    "module": "commonjs",
+    "in-source": true
+  },
+  "suffix": ".bs.js",
+  "bs-dependencies": [],
+  "bs-dev-dependencies": ["reason-test-framework"],
+  "warnings": {
+    "error": "+101"
+  },
+  "refmt": 3
+}
