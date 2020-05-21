@@ -1,12 +1,7 @@
-// Resolving the value with unit => 'value instead of 'value
-// is there so that there might be an opportunity for error
-// throwing in the future.
-type value('value) = unit => 'value;
-
 type status('value) =
   | Pending
   | Cancelled
-  | Done(value('value));
+  | Done('value);
 
 [@unboxed]
 type cancellationToken =
@@ -14,9 +9,9 @@ type cancellationToken =
 
 type cancelFunction = unit => unit;
 
-type futureCallback('value) = (unit => 'value) => unit;
+type futureCallback('value) = 'value => unit;
 
-type resolve('value) = value('value) => unit;
+type resolve('value) = 'value => unit;
 
 type setup('value) = resolve('value) => option(cancelFunction);
 
@@ -26,54 +21,67 @@ type t('value) =
 
 let noop = _ => ();
 
+[@bs.set]
+external setToString:
+  (futureCallback('value) => cancellationToken, unit => string) => unit =
+  "toString";
+
 let make = (setup: setup('value)): t('value) => {
   let status = ref(Pending);
   let subscriptions = ref(None);
   let maybeCancel =
-    setup(resolvedValueGetter => {
+    setup(value => {
       switch (status.contents) {
       | Pending =>
-        status := Done(resolvedValueGetter);
+        status := Done(value);
         switch (subscriptions.contents) {
         | None => ()
         | Some(callbacks) =>
-          callbacks->Js.Array2.forEach(cb => cb(resolvedValueGetter));
+          callbacks->Js.Array2.forEach(cb => cb(value));
           subscriptions := None;
         };
       | Cancelled
       | Done(_) => ()
       }
     });
-  Future(
-    getFunc => {
-      switch (status.contents) {
-      | Done(resolvedValueGetter) =>
-        getFunc(resolvedValueGetter);
-        Cancel(noop);
-      | Cancelled => Cancel(noop)
-      | Pending =>
-        subscriptions :=
-          (
-            switch (subscriptions.contents) {
-            | Some(array) =>
-              let _ = array->Js.Array2.push(getFunc);
-              Some(array);
-            | None => Some([|getFunc|])
-            }
-          );
-        Cancel(
-          () => {
-            subscriptions := None;
-            switch (maybeCancel) {
-            | Some(cancel) => cancel()
-            | None => ()
-            };
-            status := Cancelled;
-          },
+  let futureGet = getFunc => {
+    switch (status.contents) {
+    | Done(value) =>
+      getFunc(value);
+      Cancel(noop);
+    | Cancelled => Cancel(noop)
+    | Pending =>
+      subscriptions :=
+        (
+          switch (subscriptions.contents) {
+          | Some(array) =>
+            let _ = array->Js.Array2.push(getFunc);
+            Some(array);
+          | None => Some([|getFunc|])
+          }
         );
-      }
-    },
-  );
+      Cancel(
+        () => {
+          subscriptions := None;
+          switch (maybeCancel) {
+          | Some(cancel) => cancel()
+          | None => ()
+          };
+          status := Cancelled;
+        },
+      );
+    };
+  };
+  futureGet->setToString(() => {
+    let status =
+      switch (status.contents) {
+      | Pending => "Pending"
+      | Cancelled => "Cancelled"
+      | Done(value) => {j|Done($value)|j}
+      };
+    {j|[Future($status)]|j};
+  });
+  Future(futureGet);
 };
 
 type deferred('value) = {
@@ -95,12 +103,12 @@ let deferred = () => {
 
 let value = value =>
   make(resolve => {
-    resolve(() => value);
+    resolve(value);
     None;
   });
 
 let get = (Future(getFunc), getter) => {
-  let _ = getFunc(getVal => getter(getVal()));
+  let _ = getFunc(value => getter(value));
   ();
 };
 
@@ -111,8 +119,7 @@ let cancel = (Future(getFunc)) => {
 
 let map = (Future(getFunc), mapper) => {
   make(resolve => {
-    let Cancel(cancel) =
-      getFunc(getVal => {resolve(() => mapper(getVal()))});
+    let Cancel(cancel) = getFunc(getVal => {resolve(mapper(getVal))});
     Some(() => cancel());
   });
 };
@@ -120,9 +127,9 @@ let map = (Future(getFunc), mapper) => {
 let flatMap = (Future(getFunc), mapper) => {
   make(resolve => {
     let Cancel(cancel) =
-      getFunc(getVal1 => {
-        let Future(getFunc2) = mapper(getVal1());
-        let _ = getFunc2(getVal2 => {resolve(() => getVal2())});
+      getFunc(val1 => {
+        let Future(getFunc2) = mapper(val1);
+        let _ = getFunc2(val2 => {resolve(val2)});
         ();
       });
     Some(() => {cancel()});

@@ -1,12 +1,10 @@
-type value('value) = unit => 'value;
-
 type cancellationToken;
 
 type cancelFunction = unit => unit;
 
-type futureCallback('value) = (unit => 'value) => unit;
+type futureCallback('value) = 'value => unit;
 
-type resolve('value) = value('value) => unit;
+type resolve('value) = 'value => unit;
 
 type setup('value) = resolve('value) => option(cancelFunction);
 

@@ -7,12 +7,12 @@ let fromPromise = promise => {
       promise
       |> Js.Promise.catch(reason => {
            let error = Error(reason->errorToAny);
-           resolve(() => error);
+           resolve(error);
            Js.Promise.reject(anyToExn(reason));
          })
       |> Js.Promise.then_(value => {
            let value = Ok(value);
-           resolve(() => value);
+           resolve(value);
            Js.Promise.resolve(value);
          });
     None;
@@ -24,7 +24,7 @@ let fromPromiseUnsafe = promise => {
     let _ =
       promise
       |> Js.Promise.then_(value => {
-           resolve(() => value);
+           resolve(value);
            Js.Promise.resolve(value);
          });
     None;

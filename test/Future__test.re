@@ -6,7 +6,7 @@ describe("Future", ({test, testAsync}) => {
     let _ =
       Future.make(resolve => {
         ran := true;
-        resolve(() => 1);
+        resolve(1);
         None;
       });
     expect.bool(ran.contents).toBeTrue();
@@ -33,7 +33,7 @@ describe("Future", ({test, testAsync}) => {
     let counter = ref(0);
     let future =
       Future.make(resolve => {
-        let timeoutId = Js.Global.setTimeout(() => resolve(() => 1), 10);
+        let timeoutId = Js.Global.setTimeout(() => resolve(1), 10);
         Some(() => Js.Global.clearTimeout(timeoutId));
       });
     future->Future.get(_ => {incr(counter)});
@@ -53,7 +53,7 @@ describe("Future", ({test, testAsync}) => {
     let counter = ref(0);
     let future =
       Future.make(resolve => {
-        let timeoutId = Js.Global.setTimeout(() => resolve(() => 1), 10);
+        let timeoutId = Js.Global.setTimeout(() => resolve(1), 10);
         Some(() => Js.Global.clearTimeout(timeoutId));
       })
       ->Future.map(x => {

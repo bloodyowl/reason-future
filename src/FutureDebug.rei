@@ -1,5 +1,7 @@
-let tap: Future.t('a) => Future.t('a);
+let tap: (Future.t('a), 'a => unit) => Future.t('a);
 
-let tapOk: Future.t(result('a, 'b)) => Future.t(result('a, 'b));
+let tapOk:
+  (Future.t(result('a, 'b)), 'a => unit) => Future.t(result('a, 'b));
 
-let tapError: Future.t(result('a, 'b)) => Future.t(result('a, 'b));
+let tapError:
+  (Future.t(result('a, 'b)), 'b => unit) => Future.t(result('a, 'b));

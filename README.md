@@ -7,7 +7,6 @@ This projet is **heavily** inspired by [RationalJS/future](https://github.com/Ra
 ## Goals
 
 - Handle cancellation
-- Prepare for possible future error handling
 
 ## Try it
 
