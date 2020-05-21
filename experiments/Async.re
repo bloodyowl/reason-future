@@ -26,6 +26,7 @@ let asyncBlock = generator => {
  *   Js.log(a + b + c);
  *   a + b + c;
  * }
+ * => Future.t(int)
  *
  * async {
  *   let a = await Future.value(1);
@@ -34,6 +35,7 @@ let asyncBlock = generator => {
  *   Js.log(a + b + c);
  *   Future.value(a + b + c);
  * }
+ * => Future.t(Future.t(int))
  *
  * async {
  *   let a = await Future.value(1);
@@ -42,6 +44,7 @@ let asyncBlock = generator => {
  *   Js.log(a + b + c);
  *   async Future.value(a + b + c);
  * }
+ * => Future.t(int)
  *
  */
 [%bs.raw
