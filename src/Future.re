@@ -1,5 +1,5 @@
 type status('value) =
-  | Pending
+  | Pending(array('value => unit))
   | Cancelled
   | Done('value);
 
@@ -21,25 +21,31 @@ type t('value) =
 
 let noop = _ => ();
 
-[@bs.set]
-external setToString:
-  (futureCallback('value) => cancellationToken, unit => string) => unit =
-  "toString";
+// [@bs.set]
+// external setToString:
+//   (futureCallback('value) => cancellationToken, unit => string) => unit =
+//   "toString";
+
+// let toString = (status, ()) => {
+//   let status =
+//     switch (status.contents) {
+//     | Pending(callbacks) =>
+//       let length = Js.Array2.length(callbacks);
+//       {j|Pending($length callbacks)|j};
+//     | Cancelled => "Cancelled"
+//     | Done(value) => {j|Done($value)|j}
+//     };
+//   {j|[Future($status)]|j};
+// };
 
 let make = (setup: setup('value)): t('value) => {
-  let status = ref(Pending);
-  let subscriptions = ref(None);
+  let status = ref(Pending([||]));
   let maybeCancel =
     setup(value => {
       switch (status.contents) {
-      | Pending =>
+      | Pending(subscriptions) =>
         status := Done(value);
-        switch (subscriptions.contents) {
-        | None => ()
-        | Some(callbacks) =>
-          callbacks->Js.Array2.forEach(cb => cb(value));
-          subscriptions := None;
-        };
+        subscriptions->Js.Array2.forEach(cb => cb(value));
       | Cancelled
       | Done(_) => ()
       }
@@ -50,19 +56,10 @@ let make = (setup: setup('value)): t('value) => {
       getFunc(value);
       Cancel(noop);
     | Cancelled => Cancel(noop)
-    | Pending =>
-      subscriptions :=
-        (
-          switch (subscriptions.contents) {
-          | Some(array) =>
-            let _ = array->Js.Array2.push(getFunc);
-            Some(array);
-          | None => Some([|getFunc|])
-          }
-        );
+    | Pending(subscriptions) =>
+      let _ = subscriptions->Js.Array2.push(getFunc);
       Cancel(
         () => {
-          subscriptions := None;
           switch (maybeCancel) {
           | Some(cancel) => cancel()
           | None => ()
@@ -72,15 +69,7 @@ let make = (setup: setup('value)): t('value) => {
       );
     };
   };
-  futureGet->setToString(() => {
-    let status =
-      switch (status.contents) {
-      | Pending => "Pending"
-      | Cancelled => "Cancelled"
-      | Done(value) => {j|Done($value)|j}
-      };
-    {j|[Future($status)]|j};
-  });
+  // futureGet->setToString(toString(status));
   Future(futureGet);
 };
 
