@@ -37,6 +37,25 @@ let noop = _ => ();
 //     };
 //   {j|[Future($status)]|j};
 // };
+let pending = [||];
+let running = ref(false);
+
+let rec run = () =>
+  if (pending->Js.Array2.length > 0 && !running.contents) {
+    switch (pending->Js.Array2.pop) {
+    | Some(cb) =>
+      running := true;
+      cb();
+      running := false;
+      run();
+    | None => ()
+    };
+  };
+
+let runCallback = cb => {
+  let _ = pending->Js.Array2.unshift(cb);
+  run();
+};
 
 let make = (setup: setup('value)): t('value) => {
   let status = ref(Pending([||]));
@@ -45,19 +64,19 @@ let make = (setup: setup('value)): t('value) => {
       switch (status.contents) {
       | Pending(subscriptions) =>
         status := Done(value);
-        subscriptions->Js.Array2.forEach(cb => cb(value));
+        subscriptions->Js.Array2.forEach(cb => runCallback(() => cb(value)));
       | Cancelled
       | Done(_) => ()
       }
     });
-  let futureGet = getFunc => {
+  let futureGet = cb => {
     switch (status.contents) {
     | Done(value) =>
-      getFunc(value);
+      runCallback(() => cb(value));
       Cancel(noop);
     | Cancelled => Cancel(noop)
     | Pending(subscriptions) =>
-      let _ = subscriptions->Js.Array2.push(getFunc);
+      let _ = subscriptions->Js.Array2.push(cb);
       Cancel(
         () => {
           switch (maybeCancel) {
