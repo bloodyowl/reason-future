@@ -173,3 +173,29 @@ let all4 = (a, b, c, d) => {
 let all5 = (a, b, c, d, e) => {
   all2(all4(a, b, c, d), e)->map((((a, b, c, d), e)) => (a, b, c, d, e));
 };
+
+module Result = {
+  let fromResultArray = results => {
+    Belt.(
+      results[0]
+      ->Option.map(item =>
+          switch (item) {
+          | Ok(value) => Ok([|value|])
+          | Error(_) as error => error
+          }
+        )
+      ->Option.map(first => {
+          results
+          ->Array.sliceToEnd(1)
+          ->Array.reduce(first, (acc, item) => {
+              switch (acc, item) {
+              | (Ok(acc), Ok(item)) => Ok(Array.concat(acc, [|item|]))
+              | (Error(_) as error, _)
+              | (_, Error(_) as error) => error
+              }
+            })
+        })
+      ->Option.getWithDefault(Ok([||]))
+    );
+  };
+};

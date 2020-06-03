@@ -39,3 +39,7 @@ let all4: (t('a), t('b), t('c), t('d)) => t(('a, 'b, 'c, 'd));
 
 let all5:
   (t('a), t('b), t('c), t('d), t('e)) => t(('a, 'b, 'c, 'd, 'e));
+
+module Result: {
+  let fromResultArray: array(result('a, 'b)) => result(array('a), 'b);
+};
