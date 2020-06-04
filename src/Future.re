@@ -127,7 +127,7 @@ let cancel = (Future(getFunc)) => {
 
 let map = (Future(getFunc), ~propagateCancel=true, mapper) => {
   make(resolve => {
-    let Cancel(cancel) = getFunc(getVal => {resolve(mapper(getVal))});
+    let Cancel(cancel) = getFunc(value => {resolve(mapper(value))});
     if (propagateCancel) {
       Some(() => cancel());
     } else {
